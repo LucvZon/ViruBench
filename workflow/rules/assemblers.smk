@@ -371,3 +371,23 @@ if ASSEMBLERS_CONFIG.get("hifiasm", False):
              touch {output.fasta})
             '
             """
+
+# --- POST-ASSEMBLY CONTIG FILTERING ---
+rule filter_primary_contigs:
+    input:
+        get_raw_assembly_fasta
+    output:
+        fasta=os.path.join(ASSEMBLY_DIR, "{sample}", "filtered", "{assembler}.fasta")
+    params:
+        min_len=config["params"].get("min_contig_len", 600)
+    log:
+        os.path.join(LOG_DIR, "filter_primary_contigs", "{sample}_{assembler}.log")
+    shell:
+        """
+        if [ -s {input} ]; then
+            seqkit seq -m {params.min_len} {input} > {output.fasta} 2> {log} || touch {output.fasta}
+        else
+            echo "Input assembly {input} is empty. Creating empty filtered output." > {log}
+            touch {output.fasta}
+        fi
+        """
