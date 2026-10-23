@@ -70,8 +70,8 @@ onstart:
 wildcard_constraints:
     assembler="|".join(ACTIVE_ASSEMBLERS)
 
-# --- Helper function to get correct assembly output file ---
-def get_assembly_fasta(wildcards):
+# --- Helper function to get raw assembler output file ---
+def get_raw_assembly_fasta(wildcards):
     assembler = wildcards.assembler
     if assembler == "metaflye":
         return os.path.join(ASSEMBLY_DIR, wildcards.sample, assembler, "assembly.fasta")
@@ -94,6 +94,10 @@ def get_assembly_fasta(wildcards):
     elif assembler == "hifiasm":
         return os.path.join(ASSEMBLY_DIR, wildcards.sample, assembler, "assembly.fasta")
     # Add other assemblers here if needed in the future
+
+# --- Helper function to get filtered primary assembly output file ---
+def get_assembly_fasta(wildcards):
+    return os.path.join(ASSEMBLY_DIR, wildcards.sample, "filtered", f"{wildcards.assembler}.fasta")
 
 # --- Helper function to handle different assembly types ---
 def get_assembly_by_type(wildcards):
@@ -235,6 +239,8 @@ rule quality_control:
         fastq=os.path.join(QC_DIR, "{sample}.qc.fastq"),
         json=os.path.join(QC_DIR, "{sample}.qc.json"),
         html=os.path.join(QC_DIR, "{sample}.qc.html")
+    params:
+        min_len=config["params"].get("min_read_len", 300)
     threads:
         config["params"]["threads"]
     log:
@@ -243,7 +249,7 @@ rule quality_control:
         "fastplong -i {input} -o {output.fastq} "
         "--low_complexity_filter "
         "--complexity_threshold 60 "
-        "--length_required 150 --qualified_quality_phred 10 -j {output.json} -h {output.html} "
+        "--length_required {params.min_len} --qualified_quality_phred 10 -j {output.json} -h {output.html} "
         "--unqualified_percent_limit 35 --disable_adapter_trimming --thread {threads} &> {log}"
 
 # Step 4: Classify reads with DIAMOND against a custom database
