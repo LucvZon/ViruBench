@@ -57,7 +57,7 @@ set-resources:
   reassemble_canu:
     mem_mb: 32000
     runtime: 240
-  ressemble_raven:
+  reassemble_raven:
     mem_mb: 32000
     runtime: 240
   reassemble_shasta:
