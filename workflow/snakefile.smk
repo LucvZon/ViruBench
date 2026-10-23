@@ -719,7 +719,7 @@ rule run_inspector:
         structural=os.path.join(STATS_DIR, "inspector", "{assembly_type}", "{sample}_{assembler}", "structural_error.bed"),
         out_dir=directory(os.path.join(STATS_DIR, "inspector", "{assembly_type}", "{sample}_{assembler}"))
     params:
-        script="scripts/inspector.py",
+        script=workflow.source_path("../scripts/inspector.py"),
         min_depth=config["params"]["inspector_min_depth"],
         min_length=config["params"]["inspector_min_length"]
     threads:
@@ -799,7 +799,7 @@ rule summarize_sample_checkv:
         checkv_csv=os.path.join(STATS_DIR, "per_sample", "{assembly_type}", "{sample}_checkv_summary.csv"),
         miuvig_csv=os.path.join(STATS_DIR, "per_sample", "{assembly_type}", "{sample}_miuvig_summary.csv")
     params:
-        script="scripts/summarize_checkv.py"
+        script=workflow.source_path("../scripts/summarize_checkv.py")
     log:
         os.path.join(LOG_DIR, "summarize_checkv", "{assembly_type}", "{sample}.log")
     shell:
@@ -818,7 +818,7 @@ rule summarize_global_checkv:
         checkv_csv=os.path.join(RESULTS_DIR, "report", "{assembly_type}", "checkv_global_summary.csv"),
         miuvig_csv=os.path.join(RESULTS_DIR, "report", "{assembly_type}", "miuvig_global_summary.csv")
     params:
-        script="scripts/summarize_checkv.py"
+        script=workflow.source_path("../scripts/summarize_checkv.py")
     log:
         os.path.join(LOG_DIR, "summarize_checkv_global_{assembly_type}.log")
     shell:
@@ -855,7 +855,7 @@ rule summarize_benchmarks_generic:
         per_sample_benchmarks=expand(os.path.join(STATS_DIR, "per_sample", "{assembly_type}", "{sample}_benchmark_summary.csv"), sample=SAMPLES, assembly_type="{assembly_type}"),
         per_sample_assemblies=expand(os.path.join(STATS_DIR, "per_sample", "{assembly_type}", "{sample}_assembly_summary.csv"), sample=SAMPLES, assembly_type="{assembly_type}")
     params:
-        script="scripts/summarize_benchmarks.py",
+        script=workflow.source_path("../scripts/summarize_benchmarks.py"),
         out_global_dir=os.path.join(RESULTS_DIR, "report", "{assembly_type}"),
         out_sample_dir=os.path.join(STATS_DIR, "per_sample", "{assembly_type}")
     threads:
