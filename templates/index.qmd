@@ -1,10 +1,10 @@
 ---
-title: "LoViMAB Workflow Summary"
+title: "ViruBench Workflow Summary"
 ---
 
 # Summary
 
-This report is based on results generated with the LoViMAB v1.0.0 pipeline. WORK IN PROGRESS!!!
+This report contains basic performance and assembly statistics.
 
 ## Run Time and Resource Usage
 

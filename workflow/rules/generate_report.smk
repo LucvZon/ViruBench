@@ -185,7 +185,7 @@ rule generate_quarto_report:
   type: book
   output-dir: _book
 book:
-  title: "LoViMAB Workflow Summary"
+  title: "ViruBench Workflow Summary"
   favicon: images/favicon.png
   chapters:
 """
