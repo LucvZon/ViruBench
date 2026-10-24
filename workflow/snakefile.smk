@@ -8,7 +8,7 @@ import os
 import glob
 
 # --- Load Configuration ---
-configfile: "config/virbench.yaml"
+configfile: "config/virubench.yaml"
 
 # --- Global Variables ---
 SAMPLES = list(config["samples"].keys())
