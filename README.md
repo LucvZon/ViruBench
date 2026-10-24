@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="images/virbench_logo.png" width="200" alt="VirBench Logo">
+  <img src="images/ViruBench.svg" width="200" alt="ViruBench Logo">
 </p>
 
 # Introduction
-VirBench (Viral Assembly Benchmark) is a scalable and reproducible Snakemake workflow designed to benchmark the performance of various long-read assemblers on viral metagenomic Nanopore data.
+ViruBench is a scalable and reproducible Snakemake workflow designed to benchmark the performance of various long-read assemblers on viral metagenomic Nanopore data.
 
-VirBench employs a "semi-targeted" multi-tier assembly strategy to maximize genome recovery and compare tool performance across different levels of complexity.
+ViruBench employs a "semi-targeted" multi-tier assembly strategy to maximize genome recovery and compare tool performance across different levels of complexity.
 
 # Key Features
 
@@ -39,20 +39,20 @@ Clone the repo and install the required conda environment:
 
 ```
 # Clone repo
-git clone https://github.com/LucvZon/VirBench.git
+git clone https://github.com/LucvZon/ViruBench.git
 
-cd VirBench
+cd ViruBench
 
 # Install environment
 conda env create -f env/environment.yml
 
 # Activate environment
-conda activate virbench
+conda activate virubench
 ```
 
 ## Setup configuration
 
-VirBench relies on `config/virbench.yml` to find input fastq data, databases, references and more.
+ViruBench relies on `config/virubench.yml` to find input fastq data, databases, references and more.
 
 Key sections to adjust:
 
@@ -65,7 +65,7 @@ Optional sections:
 - `Assembler Selection`: Turn assemblers on/off.
 - `General Parameters`: Adjust number of threads and specific tool parameters
 
-**config/virbench.yml**:
+**config/virubench.yml**:
 ```
 # -------------------------------------------------------------------
 #          CONFIGURATION FOR TARGETED ASSEMBLY WORKFLOW
@@ -147,7 +147,7 @@ viruses_of_interest:
   Virus_name_2: "path/to/reference/genome"
 ```
 
-If your conda environment and config/virbench.yml are ready, then run the workflow:
+If your conda environment and config/virubench.yml are ready, then run the workflow:
 ```
 snakemake --snakefile workflow/snakefile.smk --cores 24
 ```
@@ -212,6 +212,6 @@ Adjust --cores 24 if necessary.
 
 # Databases
 
-VirBench requires two external databases:
+ViruBench requires two external databases:
 1. [DIAMOND](https://github.com/bbuchfink/diamond/wiki): A protein database (e.g., RVDB or NCBI Viral) formatted with diamond makedb.
 2. [CheckV](https://bitbucket.org/berkeleylab/checkv): The standard CheckV database.
