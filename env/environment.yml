@@ -1,4 +1,4 @@
-name: virbench
+name: virubench
 channels:
   - conda-forge
   - bioconda
