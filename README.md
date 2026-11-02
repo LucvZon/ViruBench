@@ -176,7 +176,7 @@ snakemake --snakefile workflow/snakefile.smk --cores 24
 ```
 
 ### Option 2: Download the container from GitHub Releases
-1. Download the pre-built virubench.sif image from the [latest github release](https://github.com/lucvzon/virubench/releases/latest)
+1. Download the pre-built `virubench.sif` image from the [latest github release](https://github.com/lucvzon/virubench/releases/latest)
 2. Execute the workflow:
 ```bash
 apptainer exec \
