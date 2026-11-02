@@ -35,60 +35,39 @@ Current supported assemblers:
 
 # How to run
 
-Clone the repo and install the required conda environment:
+First, clone the repo and navigate into the project directory:
 
 ```
 # Clone repo
 git clone https://github.com/LucvZon/ViruBench.git
 
 cd ViruBench
-
-# Install environment
-conda env create -f env/environment.yml
-
-# Activate environment
-conda activate virubench
 ```
 
-## Setup configuration
+## 1. Configure the workflow
 
-ViruBench relies on `config/virubench.yml` to find input fastq data, databases, references and more.
+Before starting, update config/virubench.yaml to specify your input samples, external database paths, and parameter settings.
 
 Key sections to adjust:
 
-- `Sample Configuration`: Choose a sample name and supply a path to its corresponding fastq.gz files.
-- `External Databases`: Set the paths for the diamond and checkv databases.
-- `Virus Selection`: Fill in a species name and its corresponding FASTA reference file.
+- `samples`: Choose a sample name and supply a path to its corresponding fastq.gz files.
+- `paths`: Absolute paths to your DIAMOND (diamond_db) database and CheckV (checkv_db) database.
+- `viruses_of_interest` (optional): Fill in a species name and its corresponding FASTA reference file.
+- `assemblers`: Toggle individual assemblers on (true) or off (false).
+- `params`: Adjust number of threads and specific tool parameters.
 
-Optional sections:
-
-- `Assembler Selection`: Turn assemblers on/off.
-- `General Parameters`: Adjust number of threads and specific tool parameters
-
-**config/virubench.yml**:
+**example template of config/virubench.yml**:
 ```
-# -------------------------------------------------------------------
-#          CONFIGURATION FOR TARGETED ASSEMBLY WORKFLOW
-# -------------------------------------------------------------------
- 
 # --- Sample Configuration ---
-# List your samples here. The key is the sample name (e.g., "Sample1"),
-# and the value is the path and prefix of the input fastq files.
-# The workflow will find all *.fastq.gz files in your path.
 samples:
   Sample1: "/path/to/input/reads/"
-  # Sample2: "path/to/input/reads/"
  
 # --- External Databases ---
-# Fill in the absolute paths to your databases and scripts.
 paths:
-  # Database for initial read classification
   diamond_db: "/path/to/diamond/database.dmnd"
-  # Database for CheckV
   checkv_db: "/path/to/checkv/"
  
 # --- Assembler Selection ---
-# Set to 'true' to run an assembler, or 'false' to skip it.
 assemblers:
   metaflye: true
   penguin: true
@@ -99,24 +78,40 @@ assemblers:
   wtdbg2: true
   shasta: true
   miniasm: true
-  # Add other assemblers if needed
+  hifiasm: true
+
+# --- REASSEMBLY ---
+reassembly:
+  reassemble_contigs: true
  
 # --- General Parameters ---
 params:
   threads: 24
 
-  # --- PENGUIN ---
-  # Minimum contig length
-  penguin_min_contig_len: 500
-  # Minimum sequence identity for overlaps
-  penguin_min_seq_id: 0.95
+  # --- UNIVERSAL THRESHOLDS ---
+  min_read_len: 150
+  min_contig_len: 600
 
+  # --- METAFLYE ---
+  metaflye_min_overlap: 1000
+
+  # --- PENGUIN ---
+  penguin_min_contig_len: 600
+  penguin_min_seq_id: 0.95
+  penguin_min_overlap: 250
+  penguin_min_clust_seq_id: 0.95
+  penguin_min_clust_cov: 0.85 
+  
   # --- CANU ---
-  # Set genome size for canu
+  canu_min_read_len: 300
+  canu_min_overlap: 250
+  canu_min_contig_len: 600
+  canu_min_cov: 5
   canu_genome_size: 200k
 
   # --- MYLOASM ---
-  myloasm_min_reads: 10
+  myloasm_min_seq_id: 0.95
+  myloasm_min_cov: 5
   myloasm_min_overlap: 250
 
   # --- METAMDBG ---
@@ -124,41 +119,102 @@ params:
   metamdbg_min_seq_id: 0.95
 
   # --- WTDBG2 ---
-  wtdbg2_min_read_len: 500
-  wtdbg2_min_contig_len: 1000
+  wtdbg2_min_read_len: 300
+  wtdbg2_min_contig_len: 600
+  wtdbg2_min_overlap: 250
+  wtdbg2_min_cov: 5
+  wtdbg2_min_node_len: 512
 
   # --- SHASTA ---
-  shasta_min_read_len: 500
+  shasta_min_read_len: 300
+  shasta_min_cov: 5
 
   # --- MINIASM ---
-  miniasm_min_overlap: 400
+  miniasm_min_overlap: 250
+  miniasm_min_cov: 5
+  miniasm_min_seq_id: 0.95
+
+  # --- RAVEN ---
+  raven_min_contig_len: 1000
+  raven_min_seq_id: 0.95
+
+  # --- HIFIASM ---
+  hifiasm_min_read_len: 300
+  hifiasm_tip_contig_filter: 5
+
+  # --- INSPECTOR ---
+  inspector_min_depth: 30
+  inspector_min_length: 1000
 
   # --- DIAMOND ---
-  # Set DIAMOND BLASTX sensitivity for read filtering
   # options: fast, mid-sensitive, sensitive, more-sensitive, very-sensitive, ultra-sensitive
   diamond_sensitivity: sensitive
 
-# --- Virus Selection ---
-# Add any viruses you want to specifically deep-dive on
+# --- Virus Selection (Optional) ---
 viruses_of_interest:
-  # Key: A species name for the virus
+  # Key: A species name for the virus (must match the name in the DIAMOND database)
   # Value: Path to the reference FASTA for that virus
-  Virus_name_1: "path/to/reference/genome"
-  Virus_name_2: "path/to/reference/genome"
+  # Virus_name_1: "path/to/reference/genome"
+  # Virus_name_2: "path/to/reference/genome"
 ```
 
-If your conda environment and config/virubench.yml are ready, then run the workflow:
-```
+## 2. Execute ViruBench
+
+Choose **one** of the four options below depending on your environment.  
+> **Note on Apptainer/Singularity bind mounts (Options 2-4)**:
+> If your raw reads or external databases reside outside your `$HOME` or the current working directory, you must expose them to the container using the `--bind` flag (e.g., `--bind /data:/data`).
+
+### Option 1: Using a local Conda environment
+Best if you prefer managing dependencies locally or want to submit individual sub-jobs via the native Snakemake SLURM profile.
+```bash
+# Create and activate the conda environment
+conda env create -f env/environment_with_versions.yml
+conda activate virubench
+
+# Run the pipeline
 snakemake --snakefile workflow/snakefile.smk --cores 24
 ```
-Adjust --cores 24 if necessary. 
+
+### Option 2: Download the container from GitHub Releases
+1. Download the pre-built virubench.sif image from the [latest github release](https://github.com/lucvzon/virubench/releases/latest)
+2. Execute the workflow:
+```bash
+apptainer exec \
+    --bind /path/to/reads:/path/to/reads \
+    --bind /path/to/databases:/path/to/databases \
+    virubench.sif \
+    snakemake --snakefile workflow/snakefile.smk --cores 24
+```
+
+### Option 3: Stream and run directly from GHCR
+Apptainer will fetch the image directly into cache and run the pipeline in a single command.
+```bash
+apptainer run \
+    --bind /path/to/reads:/path/to/reads \
+    --bind /path/to/databases:/path/to/databases \
+    oras://ghcr.io/lucvzon/virubench:1.0.0 \
+    snakemake --snakefile workflow/snakefile.smk --cores 24
+```
+
+### Option 4: Pull the container from GHCR and run locally
+```bash
+# Pull the image once into your local directory
+apptainer pull virubench.sif oras://ghcr.io/lucvzon/virubench:1.0.0
+
+# Run the workflow
+apptainer exec \
+    --bind /path/to/reads:/path/to/reads \
+    --bind /path/to/databases:/path/to/databases \
+    virubench.sif \
+    snakemake --snakefile workflow/snakefile.smk --cores 24
+```
 
 # Workflow
 
 ### 1. Read Preparation & QC
 - **Input**: Raw FASTQ files for a sample.
 - **Process**:
-	- -> Merge all raw reads.
+	- -> Merge all raw reads per sample.
 	- -> Trim adapters and low-quality ends ([cutadapt](https://github.com/marcelm/cutadapt)).
 	- -> Perform quality filtering ([fastplong](https://github.com/OpenGene/fastplong)).
 - **Output**: One cleaned FASTQ file per sample.
@@ -168,21 +224,28 @@ Adjust --cores 24 if necessary.
 - **Process**:
 	- -> Classify reads against a protein database (e.g., all viral proteins) using [DIAMOND](https://github.com/bbuchfink/diamond) BLASTX.
 	- -> Extract only the reads that hit the database.
-- **Output**: A smaller FASTQ file containing only the reads of interest ("target reads").
+- **Output**: A smaller FASTQ file containing only the reads of interest (viral "target reads").
 
-### 3. Denovo Assembly
+### 3. Chimeric filtering and downsampling
+- **Input**: The target reads.
+- **Process**:
+	- -> Reads containing inverted duplications are identified and discarded.
+	- -> Resulting read data is downsampled using [BBNorm](https://bbmap.org/tools/bbnorm) to further statistically dilute out leftover chimeric reads.
+- **Output**: A FASTQ file only containing downsampled, cleand, target reads.
+
+### 4. Denovo Assembly
 - **Input**: The "target reads" FASTQ file.
 - **Process**: The same set of target reads is given to each active assembler.
 - **Output**: Multiple raw assembly files (one FASTA per assembler).
 
-### 4. Contig Annotation
+### 5. Contig Annotation
 - **Input**: The raw assembly files from each assembler.
 - **Process**:
 	- -> Contigs from all assemblers are collected and annotated against the protein database (DIAMOND).
 	- -> A custom script post-processes the results to assign the best taxonomic lineage to each contig.
 - **Output**: An annotated table (TSV) for each assembly, linking contigs to potential viruses.
 
-### 5. Per-Assembler Evaluation
+### 6. Per-Assembler Evaluation
 - (These steps run independently for each assembler's output to assess its individual quality)
 - **Process**:
 	- -> General Stats: Calculate basic assembly metrics (N50, total length, etc.).
@@ -190,7 +253,7 @@ Adjust --cores 24 if necessary.
 	- -> Viral QC: Run CheckV to estimate viral genome completeness and check for contamination.
 - Output: Individual quality reports and statistics for each assembly.
 
-### 6. Targeted Comparative Analysis
+### 7. Targeted Comparative Analysis
 - (This final stage brings the results together for a direct comparison on specific viruses of interest)
 - **Process**:
 	- -> Binning: Based on the annotations, contigs are binned into separate FASTA files by virus species.
@@ -198,15 +261,19 @@ Adjust --cores 24 if necessary.
 	- -> Contig Mapping: The binned contigs are also mapped to the reference genome to visualize alignment.
 - **Output**: A final, comparative QUAST report showing which assembler performed best for each targeted virus.
 
-### 7. Report summary
+### 8. Report summary
 - A Quarto book is rendered into results/report/final_summary_report/index.html.
 
 # Outputs
 
 - `results/1_quality_control/`: Cleaned FASTQ files.
-- `results/3_assemblies/`: Raw outputs for Primary tools.
-- `results/4_reassemblies/`: Outputs for Secondary re-assemblies.
-- `results/6_final_assembly/`: The integrated Final assembly files.
+- `results/2.1_read_classification/`: FASTQ files with target reads.
+- `results/2.2_chimera_filtering/`: Target reads without chimeras.
+- `results/2.3_downsampling/`: Downsampled target reads.
+- `results/3_assemblies/`: Raw outputs for primary assemblers.
+- `results/4_reassemblies/`: Outputs for secondary reassemblies.
+- `results/6_final_assembly/`: The integrated final assembly files.
+- `results/7_annotation/`: Diamond annotations for all assembled contigs.
 - `results/8_stats_and_qc/`: Detailed CheckV, QUAST, and mapping logs.
 - `results/report/final_summary_report/`: The interactive HTML benchmark report.
 
