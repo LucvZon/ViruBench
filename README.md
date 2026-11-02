@@ -46,7 +46,7 @@ cd ViruBench
 
 ## 1. Configure the workflow
 
-Before starting, update config/virubench.yaml to specify your input samples, external database paths, and parameter settings.
+Before starting, update `config/virubench.yaml` to specify your input samples, external database paths, and parameter settings.
 
 Key sections to adjust:
 
