@@ -1,0 +1,127 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%labels
+    Author "Luc van Zon"
+    Version "1.0.0"
+    Description "Singularity container for ViruBench: Virus Metagenomic Nanopore Assembly Benchmark"
+
+%environment
+    export PATH="/opt/conda/bin:$PATH"
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+    export PYTHONNOUSERSITE=1
+    export R_LIBS_USER=""
+    export QUARTO_SHARE_PATH="/opt/conda/share/quarto"
+    unset QUARTO_ROOT
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    
+    apt-get update && apt-get install -y --no-install-recommends \
+        time \
+        procps \
+        curl \
+        ca-certificates \
+        bzip2 \
+        locales \
+        tar \
+        gzip \
+        zlib1g \
+        libgomp1 \
+        libgl1 \
+        libstdc++6 \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
+
+    locale-gen en_US.UTF-8
+    update-locale LANG=en_US.UTF-8
+
+    # Install Micromamba
+    mkdir -p /opt/micromamba
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C /opt/micromamba/ bin/micromamba
+    export PATH="/opt/micromamba/bin:$PATH"
+
+    # Use isolated build directory
+    mkdir -p /opt/build_tmp
+    cat << 'EOF' > /opt/build_tmp/environment.yml
+name: virubench
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - python==3.12.11
+  - bioconda::pysam==0.23.3
+  - bioconda::diamond==2.2.5
+  - bioconda::flye==2.9.6
+  - bioconda::plass==5.cf8933
+  - bioconda::metamdbg==1.4
+  - bioconda::shasta==0.14.0
+  - bioconda::raven-assembler==1.8.3
+  - bioconda::miniasm==0.3
+  - bioconda::canu==2.3
+  - bioconda::myloasm==0.6.0
+  - bioconda::wtdbg==2.5
+  - bioconda::fastplong==0.6.0
+  - bioconda::minimap2==2.28
+  - bioconda::samtools==1.22.1
+  - bioconda::seqkit==2.10.1
+  - bioconda::quast==5.3.0
+  - bioconda::bbmap==39.33
+  - bioconda::checkv==1.1.1
+  - bioconda::racon==1.5.0
+  - bioconda::hifiasm==0.25.0
+  - bioconda::gfatools==0.5.5
+  - bioconda::snakemake==9.10.1
+  - bioconda::mmseqs2==18.8cc5c
+  - bioconda::cutadapt==5.1
+  - conda-forge::rsync==3.4.1
+  - bioconda::seqtk==1.5
+  - conda-forge::quarto==1.7.33
+  - conda-forge::r-quarto==1.5.1
+  - conda-forge::r-knitr==1.50
+  - conda-forge::r-dplyr==1.1.4
+  - conda-forge::r-readr==2.1.5
+EOF
+
+    mkdir -p /opt/conda
+    micromamba create -y -p /opt/conda -f /opt/build_tmp/environment.yml
+    
+    # --- DEEP CLEANUP ---
+    micromamba clean -afy
+    
+    # 1. Strip static libraries and documentation
+    find /opt/conda -name "*.a" -delete
+    rm -rf /opt/conda/share/doc /opt/conda/share/man /opt/conda/lib/R/doc
+    
+    # 2. Strip Java source code zip bundled inside OpenJDK
+    find /opt/conda -name "src.zip" -delete
+    
+    # 3. Strip Python bytecode caches
+    find /opt/conda -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    find /opt/conda -name "*.pyc" -delete
+
+    # 4. Remove build temp folder
+    rm -rf /opt/build_tmp /opt/micromamba /root/.cache
+
+%runscript
+    exec "$@"
+
+%test
+    export PATH="/opt/conda/bin:$PATH"
+    export QUARTO_SHARE_PATH="/opt/conda/share/quarto"
+    unset QUARTO_ROOT
+
+    echo "Verifying installations..."
+    /usr/bin/time --version >/dev/null 2>&1 || exit 1
+    python -c "import pulp; print('PuLP solver OK')"
+    snakemake --version
+    flye --version
+    minimap2 --version
+    samtools --version
+    diamond --version
+    quarto --version
+    python -c "import pysam, pandas, Bio; print('Python libraries OK')"
+    Rscript -e "library(dplyr); library(readr); library(knitr); cat('R libraries OK\n')"
+    echo "All tests passed!"
