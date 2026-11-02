@@ -231,7 +231,7 @@ apptainer exec \
 - **Process**:
 	- -> Reads containing inverted duplications are identified and discarded.
 	- -> Resulting read data is downsampled using [BBNorm](https://bbmap.org/tools/bbnorm) to further statistically dilute out leftover chimeric reads.
-- **Output**: A FASTQ file only containing downsampled, cleand, target reads.
+- **Output**: A FASTQ file only containing downsampled, cleaned, target reads.
 
 ### 4. Denovo Assembly
 - **Input**: The "target reads" FASTQ file.
