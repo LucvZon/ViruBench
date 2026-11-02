@@ -62,7 +62,6 @@ params:
   penguin_min_clust_cov: 0.85 
   
   # --- CANU ---
-  # Set genome size for canu
   canu_min_read_len: 300
   canu_min_overlap: 250
   canu_min_contig_len: 600
