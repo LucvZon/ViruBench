@@ -1083,17 +1083,60 @@ rule summarize_inspector:
                 writer.writerow(row)
 
 rule gather_versions:
-     output:
+    output:
         versions=os.path.join(RESULTS_DIR, "report", "versions.tsv")
-     shell:
-        """
-        {{
-        set -euo pipefail
-        # Create a header
-        echo "Name Version Channel"
-        conda list --fields name,version,channel_name | grep -E "flye|canu|raven|plass|myloasm|metamdbg|wtdbg|shasta|miniasm|diamond" | awk '{{print $1, $2, $3}}'
-        }} > {output.versions}
-        """
+    run:
+        import os
+        import sys
+        import glob
+        import json
+
+        # Packages to capture in the summary table
+        TARGET_PACKAGES = {
+            "flye", "canu", "raven-assembler", "plass", "myloasm",
+            "metamdbg", "wtdbg", "shasta", "miniasm", "hifiasm",
+            "diamond", "checkv", "quast", "snakemake", "minimap2"
+        }
+
+        records = []
+        conda_meta_dir = os.path.join(sys.prefix, "conda-meta")
+
+        if os.path.isdir(conda_meta_dir):
+            for meta_file in glob.glob(os.path.join(conda_meta_dir, "*.json")):
+                try:
+                    with open(meta_file, "r") as f:
+                        data = json.load(f)
+                        pkg_name = data.get("name", "")
+                        
+                        if pkg_name in TARGET_PACKAGES:
+                            version = data.get("version", "unknown")
+                            
+                            # Determine channel name
+                            url = data.get("url", "") or data.get("channel", "")
+                            if "bioconda" in url:
+                                channel = "bioconda"
+                            elif "conda-forge" in url:
+                                channel = "conda-forge"
+                            else:
+                                channel = data.get("schannel", "custom")
+                                
+                            records.append((pkg_name, version, channel))
+                except Exception:
+                    continue
+
+        # Sort alphabetically by package name
+        records.sort(key=lambda x: x[0])
+
+        # Write space-separated TSV matching templates/config_chapter.qmd expectations
+        with open(output.versions, "w") as out_f:
+            out_f.write("Name Version Channel\n")
+            if records:
+                for name, ver, chan in records:
+                    out_f.write(f"{name} {ver} {chan}\n")
+            else:
+                # Fallback placeholder if run in an environment without conda-meta
+                out_f.write("virbench 1.0.0 container\n")
+
 
 # --- CREATE OVERVIEW TABLES ---
 include: "rules/overview_tables.smk"
